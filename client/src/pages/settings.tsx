@@ -29,12 +29,8 @@ function SettingsItem({
   onClick,
   testId 
 }: SettingsItemProps) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors text-left"
-      data-testid={testId}
-    >
+  const content = (
+    <>
       <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
         <Icon className="w-5 h-5 text-cyan-400" strokeWidth={1.5} />
       </div>
@@ -55,6 +51,28 @@ function SettingsItem({
       ) : (
         <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" strokeWidth={1.5} />
       )}
+    </>
+  );
+
+  if (toggle) {
+    return (
+      <div
+        className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors text-left cursor-pointer"
+        onClick={() => onToggle?.(!toggleValue)}
+        data-testid={testId}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-white/5 transition-colors text-left"
+      data-testid={testId}
+    >
+      {content}
     </button>
   );
 }
