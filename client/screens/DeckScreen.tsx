@@ -72,7 +72,8 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
     queryKey: ["/api/deck"],
     queryFn: async () => {
       const baseUrl = getApiUrl();
-      const response = await fetch(new URL("/api/deck", baseUrl).href, {
+      const url = `${baseUrl.replace(/\/$/, "")}/api/deck`;
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch deck");
@@ -84,7 +85,8 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
   const swipeMutation = useMutation({
     mutationFn: async ({ swipeeId, direction }: { swipeeId: string; direction: "left" | "right" }) => {
       const baseUrl = getApiUrl();
-      const response = await fetch(new URL("/api/swipe", baseUrl).href, {
+      const url = `${baseUrl.replace(/\/$/, "")}/api/swipe`;
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

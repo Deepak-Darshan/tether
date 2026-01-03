@@ -35,7 +35,8 @@ export default function ProfileScreen() {
   const updateMutation = useMutation({
     mutationFn: async (data: { name: string; headline: string; bio: string; skills: string }) => {
       const baseUrl = getApiUrl();
-      const response = await fetch(new URL("/api/users/me", baseUrl).href, {
+      const url = `${baseUrl.replace(/\/$/, "")}/api/users/me`;
+      const response = await fetch(url, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

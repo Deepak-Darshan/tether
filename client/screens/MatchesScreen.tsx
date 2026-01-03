@@ -48,7 +48,8 @@ export default function MatchesScreen() {
     queryKey: ["/api/matches"],
     queryFn: async () => {
       const baseUrl = getApiUrl();
-      const response = await fetch(new URL("/api/matches", baseUrl).href, {
+      const url = `${baseUrl.replace(/\/$/, "")}/api/matches`;
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch matches");

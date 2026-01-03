@@ -42,7 +42,8 @@ export default function ChatScreen({ route }: Props) {
     queryKey: ["/api/matches", matchId, "messages"],
     queryFn: async () => {
       const baseUrl = getApiUrl();
-      const response = await fetch(new URL(`/api/matches/${matchId}/messages`, baseUrl).href, {
+      const url = `${baseUrl.replace(/\/$/, "")}/api/matches/${matchId}/messages`;
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Failed to fetch messages");
@@ -55,7 +56,8 @@ export default function ChatScreen({ route }: Props) {
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
       const baseUrl = getApiUrl();
-      const response = await fetch(new URL(`/api/matches/${matchId}/messages`, baseUrl).href, {
+      const url = `${baseUrl.replace(/\/$/, "")}/api/matches/${matchId}/messages`;
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

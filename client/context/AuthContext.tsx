@@ -64,7 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = await getToken();
       if (storedToken) {
         const baseUrl = getApiUrl();
-        const response = await fetch(new URL("/api/auth/me", baseUrl).href, {
+        const url = `${baseUrl.replace(/\/$/, "")}/api/auth/me`;
+        const response = await fetch(url, {
           headers: { Authorization: `Bearer ${storedToken}` },
         });
 
@@ -85,7 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function login(username: string, password: string) {
     const baseUrl = getApiUrl();
-    const response = await fetch(new URL("/api/auth/login", baseUrl).href, {
+    const url = `${baseUrl.replace(/\/$/, "")}/api/auth/login`;
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -105,7 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function register(username: string, password: string, name: string) {
     const baseUrl = getApiUrl();
-    const response = await fetch(new URL("/api/auth/register", baseUrl).href, {
+    const url = `${baseUrl.replace(/\/$/, "")}/api/auth/register`;
+    const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password, name }),
@@ -127,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (token) {
         const baseUrl = getApiUrl();
-        await fetch(new URL("/api/auth/logout", baseUrl).href, {
+        const url = `${baseUrl.replace(/\/$/, "")}/api/auth/logout`;
+        await fetch(url, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
         });
