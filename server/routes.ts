@@ -1,329 +1,341 @@
-import type { Express, Request, Response, NextFunction } from "express";
-import { createServer, type Server } from "http";
-import session from "express-session";
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "node:http";
+import { randomUUID } from "crypto";
 import { storage } from "./storage";
-import { insertUserSchema, insertSwipeSchema, insertMessageSchema } from "@shared/schema";
+import { loginSchema, registerSchema, swipeSchema, messageSchema } from "@shared/schema";
 import { z } from "zod";
-import crypto from "crypto";
 
-// Simple password hashing
+const sessions = new Map<string, string>();
+
 function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
-
-// Auth middleware
-function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session?.userId) {
-    return res.status(401).json({ message: "Unauthorized" });
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
   }
-  next();
+  return hash.toString(16) + password.length.toString(16);
 }
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  // Session setup
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || "tether-secret-key-change-in-production",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        secure: false,
-        httpOnly: true,
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      },
-    })
-  );
+function getAuthToken(req: Request): string | null {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.substring(7);
+  }
+  return null;
+}
 
-  // Auth routes
-  app.post("/api/auth/register", async (req, res) => {
+async function getUserFromToken(req: Request) {
+  const token = getAuthToken(req);
+  if (!token) return null;
+
+  const userId = sessions.get(token);
+  if (!userId) return null;
+
+  return await storage.getUser(userId);
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
-      const { name, username, password } = req.body;
-      
-      if (!name || !username || !password) {
-        return res.status(400).json({ message: "Name, username and password are required" });
-      }
-      
-      const existing = await storage.getUserByUsername(username);
-      if (existing) {
+      const data = registerSchema.parse(req.body);
+
+      const existingUser = await storage.getUserByUsername(data.username);
+      if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
-      
+
+      const hashedPassword = hashPassword(data.password);
       const user = await storage.createUser({
-        name,
-        username,
-        passwordHash: hashPassword(password),
-        headline: null,
-        bio: null,
-        skills: [],
-        lookingFor: [],
-        avatarUrl: null,
+        username: data.username,
+        password: hashedPassword,
+        name: data.name,
       });
-      
-      req.session.userId = user.id;
-      
-      res.json({ id: user.id, name: user.name, username: user.username });
+
+      const token = randomUUID();
+      sessions.set(token, user.id);
+
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          headline: user.headline,
+          bio: user.bio,
+          skills: user.skills,
+          avatarUrl: user.avatarUrl,
+        },
+      });
     } catch (error) {
-      console.error("Register error:", error);
-      res.status(500).json({ message: "Failed to register" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      const { username, password } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      const data = loginSchema.parse(req.body);
+
+      const user = await storage.getUserByUsername(data.username);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
-      
-      const user = await storage.getUserByUsername(username);
-      if (!user || user.passwordHash !== hashPassword(password)) {
-        return res.status(401).json({ message: "Invalid username or password" });
+
+      const hashedPassword = hashPassword(data.password);
+      if (user.password !== hashedPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
-      
-      req.session.userId = user.id;
-      
-      res.json({ id: user.id, name: user.name, username: user.username });
+
+      const token = randomUUID();
+      sessions.set(token, user.id);
+
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          headline: user.headline,
+          bio: user.bio,
+          skills: user.skills,
+          avatarUrl: user.avatarUrl,
+        },
+      });
     } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      res.json({ message: "Logged out" });
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    const token = getAuthToken(req);
+    if (token) {
+      sessions.delete(token);
+    }
+    res.json({ success: true });
+  });
+
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    res.json({
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      headline: user.headline,
+      bio: user.bio,
+      skills: user.skills,
+      avatarUrl: user.avatarUrl,
     });
   });
 
-  // Current user
-  app.get("/api/users/me", requireAuth, async (req, res) => {
-    try {
-      const user = await storage.getUser(req.session.userId!);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const { passwordHash, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      console.error("Get user error:", error);
-      res.status(500).json({ message: "Failed to get user" });
+  app.put("/api/users/me", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const { name, headline, bio, skills, avatarUrl } = req.body;
+
+    const updatedUser = await storage.updateUser(user.id, {
+      name: name || user.name,
+      headline,
+      bio,
+      skills,
+      avatarUrl,
+    });
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      id: updatedUser.id,
+      username: updatedUser.username,
+      name: updatedUser.name,
+      headline: updatedUser.headline,
+      bio: updatedUser.bio,
+      skills: updatedUser.skills,
+      avatarUrl: updatedUser.avatarUrl,
+    });
   });
 
-  app.patch("/api/users/me", requireAuth, async (req, res) => {
-    try {
-      // Whitelist only safe profile fields - never allow passwordHash, id, or username updates
-      const { name, headline, bio, skills, lookingFor, avatarUrl } = req.body;
-      
-      const safeUpdates: Record<string, any> = {};
-      if (name !== undefined) safeUpdates.name = name;
-      if (headline !== undefined) safeUpdates.headline = headline;
-      if (bio !== undefined) safeUpdates.bio = bio;
-      if (skills !== undefined) safeUpdates.skills = skills;
-      if (lookingFor !== undefined) safeUpdates.lookingFor = lookingFor;
-      if (avatarUrl !== undefined) safeUpdates.avatarUrl = avatarUrl;
-      
-      if (Object.keys(safeUpdates).length === 0) {
-        return res.status(400).json({ message: "No valid fields to update" });
-      }
-      
-      const user = await storage.updateUser(req.session.userId!, safeUpdates);
-      
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      const { passwordHash, ...safeUser } = user;
-      res.json(safeUser);
-    } catch (error) {
-      console.error("Update user error:", error);
-      res.status(500).json({ message: "Failed to update user" });
+  app.get("/api/deck", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const users = await storage.getUnswipedUsers(user.id);
+
+    res.json(
+      users.map((u) => ({
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        headline: u.headline,
+        bio: u.bio,
+        skills: u.skills,
+        avatarUrl: u.avatarUrl,
+      }))
+    );
   });
 
-  // Profiles for swiping
-  app.get("/api/profiles", requireAuth, async (req, res) => {
-    try {
-      const profiles = await storage.getProfiles(req.session.userId!);
-      const safeProfiles = profiles.map(({ passwordHash, ...p }) => p);
-      res.json(safeProfiles);
-    } catch (error) {
-      console.error("Get profiles error:", error);
-      res.status(500).json({ message: "Failed to get profiles" });
+  app.post("/api/swipe", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
-  });
 
-  // Swipes
-  app.post("/api/swipes", requireAuth, async (req, res) => {
     try {
-      const { swipeeId, direction } = req.body;
-      
-      if (!swipeeId || !direction) {
-        return res.status(400).json({ message: "swipeeId and direction are required" });
-      }
-      
-      if (direction !== "left" && direction !== "right") {
-        return res.status(400).json({ message: "direction must be 'left' or 'right'" });
-      }
-      
-      const swiperId = req.session.userId!;
-      
-      // Check if already swiped
-      const existing = await storage.getSwipe(swiperId, swipeeId);
-      if (existing) {
+      const data = swipeSchema.parse(req.body);
+
+      const existingSwipe = await storage.getSwipe(user.id, data.swipeeId);
+      if (existingSwipe) {
         return res.status(400).json({ message: "Already swiped on this user" });
       }
-      
-      // Create swipe
-      const swipe = await storage.createSwipe({
-        swiperId,
-        swipeeId,
-        direction,
-      });
-      
-      let match = null;
-      
-      // Check for mutual match if swiped right
-      if (direction === "right") {
-        const isMutual = await storage.checkMutualSwipe(swiperId, swipeeId);
-        
-        if (isMutual) {
-          // Check if match doesn't already exist
-          const existingMatch = await storage.getMatchBetweenUsers(swiperId, swipeeId);
-          
-          if (!existingMatch) {
-            match = await storage.createMatch({
-              user1Id: swipeeId, // The person who swiped first
-              user2Id: swiperId, // Current user who completed the match
-            });
-          }
+
+      await storage.createSwipe(user.id, data.swipeeId, data.direction);
+
+      let isMatch = false;
+
+      if (data.direction === "right") {
+        const reverseSwipe = await storage.getSwipe(data.swipeeId, user.id);
+        if (reverseSwipe && reverseSwipe.direction === "right") {
+          await storage.createMatch(user.id, data.swipeeId);
+          isMatch = true;
         }
       }
-      
-      res.json({ swipe, match: match ? true : false });
-    } catch (error) {
-      console.error("Swipe error:", error);
-      res.status(500).json({ message: "Failed to record swipe" });
-    }
-  });
 
-  // Matches
-  app.get("/api/matches", requireAuth, async (req, res) => {
-    try {
-      const matches = await storage.getMatches(req.session.userId!);
-      
-      // Remove password hashes from user data
-      const safeMatches = matches.map(m => ({
-        ...m,
-        user1: { ...m.user1, passwordHash: undefined },
-        user2: { ...m.user2, passwordHash: undefined },
-      }));
-      
-      res.json(safeMatches);
-    } catch (error) {
-      console.error("Get matches error:", error);
-      res.status(500).json({ message: "Failed to get matches" });
-    }
-  });
+      const matchedUser = isMatch ? await storage.getUser(data.swipeeId) : null;
 
-  app.get("/api/matches/:matchId", requireAuth, async (req, res) => {
-    try {
-      const match = await storage.getMatch(req.params.matchId);
-      
-      if (!match) {
-        return res.status(404).json({ message: "Match not found" });
-      }
-      
-      // Verify user is part of this match
-      if (match.user1Id !== req.session.userId && match.user2Id !== req.session.userId) {
-        return res.status(403).json({ message: "Not authorized" });
-      }
-      
       res.json({
-        ...match,
-        user1: { ...match.user1, passwordHash: undefined },
-        user2: { ...match.user2, passwordHash: undefined },
+        success: true,
+        isMatch,
+        matchedUser: matchedUser
+          ? {
+              id: matchedUser.id,
+              name: matchedUser.name,
+              headline: matchedUser.headline,
+              avatarUrl: matchedUser.avatarUrl,
+            }
+          : null,
       });
     } catch (error) {
-      console.error("Get match error:", error);
-      res.status(500).json({ message: "Failed to get match" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
-  // Messages
-  app.get("/api/messages/:matchId", requireAuth, async (req, res) => {
-    try {
-      const match = await storage.getMatch(req.params.matchId);
-      
-      if (!match) {
-        return res.status(404).json({ message: "Match not found" });
-      }
-      
-      // Verify user is part of this match
-      if (match.user1Id !== req.session.userId && match.user2Id !== req.session.userId) {
-        return res.status(403).json({ message: "Not authorized" });
-      }
-      
-      const messages = await storage.getMessages(req.params.matchId);
-      
-      const safeMessages = messages.map(m => ({
-        ...m,
-        sender: { ...m.sender, passwordHash: undefined },
-      }));
-      
-      res.json(safeMessages);
-    } catch (error) {
-      console.error("Get messages error:", error);
-      res.status(500).json({ message: "Failed to get messages" });
+  app.get("/api/matches", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const userMatches = await storage.getMatches(user.id);
+    const matchesWithUsers = await Promise.all(
+      userMatches.map(async (match) => {
+        const otherUserId = match.user1Id === user.id ? match.user2Id : match.user1Id;
+        const otherUser = await storage.getUser(otherUserId);
+        const msgs = await storage.getMessages(match.id);
+        const lastMessage = msgs.length > 0 ? msgs[msgs.length - 1] : null;
+        return {
+          matchId: match.id,
+          user: otherUser ? {
+            id: otherUser.id,
+            username: otherUser.username,
+            name: otherUser.name,
+            headline: otherUser.headline,
+            bio: otherUser.bio,
+            skills: otherUser.skills,
+            avatarUrl: otherUser.avatarUrl,
+          } : null,
+          lastMessage: lastMessage ? {
+            content: lastMessage.content,
+            senderId: lastMessage.senderId,
+            createdAt: lastMessage.createdAt,
+          } : null,
+          createdAt: match.createdAt,
+        };
+      })
+    );
+
+    res.json(matchesWithUsers.filter(m => m.user !== null));
   });
 
-  app.post("/api/messages", requireAuth, async (req, res) => {
+  app.get("/api/matches/:matchId/messages", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { matchId } = req.params;
+    const match = await storage.getMatch(matchId);
+
+    if (!match) {
+      return res.status(404).json({ message: "Match not found" });
+    }
+
+    if (match.user1Id !== user.id && match.user2Id !== user.id) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const msgs = await storage.getMessages(matchId);
+    res.json(msgs.map(m => ({
+      id: m.id,
+      senderId: m.senderId,
+      content: m.content,
+      createdAt: m.createdAt,
+    })));
+  });
+
+  app.post("/api/matches/:matchId/messages", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
     try {
-      const { matchId, content } = req.body;
-      
-      if (!matchId || !content) {
-        return res.status(400).json({ message: "matchId and content are required" });
-      }
-      
+      const { matchId } = req.params;
+      const data = messageSchema.parse({ ...req.body, matchId });
+
       const match = await storage.getMatch(matchId);
-      
+
       if (!match) {
         return res.status(404).json({ message: "Match not found" });
       }
-      
-      // Verify user is part of this match
-      if (match.user1Id !== req.session.userId && match.user2Id !== req.session.userId) {
-        return res.status(403).json({ message: "Not authorized" });
+
+      if (match.user1Id !== user.id && match.user2Id !== user.id) {
+        return res.status(403).json({ message: "Access denied" });
       }
-      
-      const message = await storage.createMessage({
-        matchId,
-        senderId: req.session.userId!,
-        content,
+
+      const message = await storage.createMessage(matchId, user.id, data.content);
+
+      res.json({
+        id: message.id,
+        senderId: message.senderId,
+        content: message.content,
+        createdAt: message.createdAt,
       });
-      
-      res.json(message);
     } catch (error) {
-      console.error("Send message error:", error);
-      res.status(500).json({ message: "Failed to send message" });
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 
+  const httpServer = createServer(app);
   return httpServer;
-}
-
-// Extend express-session types
-declare module "express-session" {
-  interface SessionData {
-    userId: string;
-  }
 }

@@ -1,89 +1,149 @@
-# Tether Design Guidelines
+# Tether - Design Guidelines
 
-## Design Approach
-**Aesthetic:** Dark Mode Futuristic/Cyberpunk Professional - a high-tech, polished interface with glassmorphic elements and neon accents.
+## Authentication Architecture
+**Auth Required** - This is a social networking app with user accounts, matching, and backend integration.
 
-## Color Palette
-- **Backgrounds:** Deep dark (slate-950 or black) with subtle animated gradients or mesh gradients
-- **Primary Actions:** Electric Cyan (#00f0ff) OR Neon Purple (#bc13fe) for buttons like "Connect"
-- **Text:** White or very light grey (slate-200) for high readability
-- **Card Backgrounds:** Translucent white/grey with blur effects (glassmorphism)
-- **Borders:** Thin white borders on glass elements
-- **Accents:** Glowing effects on interactive elements
+**Implementation:**
+- Use email/password authentication initially (can be enhanced with SSO later)
+- Store session tokens using `SecureStore` (expo-secure-store)
+- Redirect to `(auth)` group if no valid token exists
+- Auth Flow Screens:
+  - Login Screen: `(auth)/login.tsx`
+  - Sign Up Screen: `(auth)/register.tsx`
+  - Include placeholder links for Privacy Policy & Terms of Service
 
-## Typography
-- **Hierarchy:** Clear distinction between headlines, body text, and labels
-- **Hero Text:** Glowing gradient text effect for "Build the Future Together"
-- **Body Text:** Clean, modern sans-serif in slate-200
-- **Labels:** Floating labels that animate on focus
-- **Readability:** High contrast against dark backgrounds
+## Navigation Structure
+**Tab Navigation** (3 distinct feature areas)
 
-## Layout System
-- **Spacing:** Use Tailwind units of 2, 4, 6, 8, 12, 16 for consistent rhythm
-- **Mobile-First:** All layouts must scale from mobile up
-- **Centering:** Primary actions and card stacks centered on viewport
-- **Breathing Room:** Generous padding around glassmorphic cards
+Root navigation uses Bottom Tab Bar with 3 tabs:
+1. **Deck** (Home/Main Feed) - The swipe interface
+2. **Matches** - Connections established
+3. **Profile** - User settings and account management
 
-## Component Library
+File structure:
+- `(tabs)/_layout.tsx` - Bottom Tab Navigator
+- `(tabs)/index.tsx` - Main Swipe Deck (default route)
+- `(tabs)/matches.tsx` - Matches screen
+- `(tabs)/profile.tsx` - Profile screen
 
-### Navigation
-- Bottom navigation bar (mobile) with glowing active states
-- Clean, minimal top bar for desktop
+## Design System
 
-### Cards (Swipe Profiles)
-- **Style:** High-tech ID badge aesthetic with glassmorphism
-- **Background:** Translucent with backdrop-blur
-- **Border:** Thin white/cyan glow
-- **Content:** Avatar, name, headline, bio, skill chips
-- **Animation:** Smooth drag gestures (Framer Motion required)
+### Color Palette
+**Theme:** Dark Mode "Cyberpunk"
+- **Background:** `#0f172a` (Slate-950)
+- **Primary Accent:** `#00f0ff` (Cyan) - For positive actions, highlights
+- **Secondary Accent:** `#bc13fe` (Purple) - For secondary actions, gradients
+- **Text Primary:** White/off-white for readability on dark background
+- **Text Secondary:** Muted gray for supporting text
 
-### Buttons
-- **Primary:** Glowing effect on hover with cyan/purple accent
-- **Secondary:** Subtle borders with hover glow
-- **CTA:** "Enter App" button with prominent glow effect
+### Visual Effects
+- **Glassmorphism:** Use `<BlurView>` (expo-blur) for:
+  - Bottom tab bar (floating, semi-transparent)
+  - Profile cards on the swipe deck
+  - Modal overlays
+- **StatusBar:** Set to `light-content` for visibility on dark background
 
-### Form Inputs
-- **Style:** Floating labels that animate upward on focus
-- **Focus State:** Glowing border in primary color
-- **Background:** Translucent with subtle blur
+### Typography
+- Use system fonts optimized for readability
+- Hierarchy:
+  - **Headings:** Bold, larger sizing for names/headlines
+  - **Body:** Regular weight for bios and descriptions
+  - **Labels:** Smaller, muted for metadata (skills, location)
 
-### Skill Tags/Chips
-- **Style:** Small glowing chips with rounded corners
-- **Colors:** Cyan or purple glow with translucent background
-- **Border:** Thin accent border
+### Icons
+- Use **Lucide-react-native** for all iconography
+- Consistent sizing across navigation and actions
+- Cyan/purple accent colors for active states
 
-### Match Overlay
-- **Style:** Full-screen overlay with dramatic reveal
-- **Animation:** "LINK ESTABLISHED" text with neon glow effect
-- **Background:** Dark with animated gradient burst
+## Screen Specifications
 
-### Chat Interface
-- **Style:** Modern terminal or sleek messenger aesthetic
-- **Message Bubbles:** Glassmorphic with sender/receiver distinction
-- **Input:** Glowing focus state with cyber-inspired styling
+### 1. Login/Register Screens `(auth)/*`
+- **Layout:** Stack-only navigation (linear flow)
+- **Header:** None or minimal, custom branded header
+- **Content:** 
+  - Centered forms with input fields
+  - Submit buttons using primary accent color (cyan)
+  - Link to alternate screen (Login ↔ Register)
+- **Safe Area:** Top inset: `insets.top + Spacing.xl`, Bottom inset: `insets.bottom + Spacing.xl`
 
-## Icons
-- **Library:** Lucide-React exclusively
-- **Stroke:** Thin, clean strokes (1-1.5px weight)
-- **Color:** Match interface (white/cyan/purple)
+### 2. Deck Screen `(tabs)/index.tsx`
+**Purpose:** Swipe through professional profiles to make connections
 
-## Animations
-- **Framework:** Framer Motion (required)
-- **Card Swiping:** Smooth 60fps drag gestures with spring physics
-- **Page Transitions:** Seamless, no jarring loads
-- **Hover States:** Subtle glow and scale effects
-- **Match Animation:** Dramatic full-screen reveal
-- **Gradients:** Subtle movement in backgrounds
+- **Layout:**
+  - Custom header with app branding (transparent)
+  - Main content: Full-screen card stack (non-scrollable)
+  - Floating action area at bottom
+- **Components:**
+  - Card stack using `react-native-gesture-handler` or `rn-tinder-card`
+  - Each card displays: Avatar, Name, Headline, Bio, Skills
+  - Cards use glassmorphism effect (BlurView)
+  - Swipe indicators (left/right visual feedback)
+  - Action buttons below cards: Pass (left), Like (right)
+- **Interactions:**
+  - Swipe right = Like (send API request with `direction: 'right'`)
+  - Swipe left = Pass (skip)
+  - On match: Show modal with "Connection Established" animation
+- **Safe Area:** 
+  - Top inset: `headerHeight + Spacing.xl`
+  - Bottom inset: `tabBarHeight + Spacing.xl`
 
-## Images
-**Landing Page Hero:** No large hero image - use glowing gradient text effect as the focal point with dark animated gradient background.
+### 3. Matches Screen `(tabs)/matches.tsx`
+**Purpose:** View established connections
 
-**Profile Cards:** Avatar images within glassmorphic cards, circular or rounded-square format with subtle glow borders.
+- **Layout:**
+  - Default navigation header with title "Matches"
+  - Scrollable list/grid of matched profiles
+- **Components:**
+  - List of match cards (avatar, name, headline)
+  - Tap to open chat/profile detail (future feature)
+- **Safe Area:** 
+  - Top inset: `Spacing.xl` (with default header)
+  - Bottom inset: `tabBarHeight + Spacing.xl`
 
-## Key UX Principles
-- High-frame-rate smoothness throughout
-- Immediate visual feedback on all interactions
-- Glassmorphism creates depth and hierarchy
-- Neon accents guide primary actions
-- Dark theme reduces eye strain for professional use
-- Gesture-based interactions feel natural and fluid
+### 4. Profile Screen `(tabs)/profile.tsx`
+**Purpose:** Manage user profile and settings
+
+- **Layout:**
+  - Default navigation header with title "Profile"
+  - Scrollable form/content area
+- **Components:**
+  - User avatar (editable)
+  - Editable fields: Name, Headline, Bio, Skills
+  - Account section with:
+    - Log out button (with confirmation alert)
+    - Delete account (nested under Settings > Account > Delete, double confirmation)
+- **Safe Area:** 
+  - Top inset: `Spacing.xl` (with default header)
+  - Bottom inset: `tabBarHeight + Spacing.xl`
+
+### 5. Bottom Tab Bar
+- **Style:** Floating, glassmorphism effect using BlurView
+- **Spacing:** Elevated above safe area with padding
+- **Icons:** Lucide icons, cyan accent for active tab
+- **Labels:** Optional, can be icon-only for cleaner aesthetic
+
+## Interaction Design
+- **Touchable Feedback:** All interactive elements have visual feedback (opacity change, scale)
+- **Swipe Animations:** Smooth, physics-based using react-native-reanimated
+- **Floating Buttons:** Subtle drop shadow:
+  - shadowOffset: `{width: 0, height: 2}`
+  - shadowOpacity: `0.10`
+  - shadowRadius: `2`
+- **Match Modal:** Celebratory animation (scale/fade-in) with cyan/purple gradient overlay
+
+## Assets & Iconography
+**Required Assets:**
+- App logo/branding for auth screens and deck header
+- Placeholder avatar for profiles without images
+- Match celebration icon/animation graphic
+
+**Icon Usage:**
+- Use Lucide-react-native system icons for all UI actions
+- No custom emojis; rely on professional iconography
+- Examples: Deck (cards icon), Matches (users icon), Profile (user icon)
+
+## Accessibility
+- Ensure sufficient contrast between text and dark background
+- All touchable areas meet minimum size requirements (44x44 pts)
+- Swipe gestures have alternative button actions for accessibility
+- Form inputs have clear labels and validation feedback
