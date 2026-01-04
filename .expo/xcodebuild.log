@@ -1,0 +1,3 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project /Users/deepakdarshan/Documents/software_projects/tether/ios/Tether.xcodeproj -configuration Debug -scheme Tether -destination id=C3D219EE-0EA6-436C-B5CE-48DE6DB52886
+
