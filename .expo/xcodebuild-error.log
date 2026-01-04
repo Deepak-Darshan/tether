@@ -1,0 +1,6 @@
+2026-01-04 12:24:28.191 xcodebuild[81636:65107274] Writing error result bundle to /var/folders/4w/yyqw4dx94vs96vjdy9x0tgnr0000gn/T/ResultBundle_2026-04-01_12-24-0028.xcresult
+xcodebuild: error: Unable to find a destination matching the provided destination specifier:
+		{ id:C3D219EE-0EA6-436C-B5CE-48DE6DB52886 }
+
+	Ineligible destinations for the "Tether" scheme:
+		{ platform:iOS, id:dvtdevice-DVTiPhonePlaceholder-iphoneos:placeholder, name:Any iOS Device, error:iOS 18.5 is not installed. To use with Xcode, first download and install the platform }

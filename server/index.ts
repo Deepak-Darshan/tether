@@ -18,6 +18,24 @@ function setupCors(app: express.Application) {
   app.use((req, res, next) => {
     const origins = new Set<string>();
 
+    // Allow localhost for local development
+    origins.add("http://localhost:8081");
+    origins.add("http://localhost:19006");
+    origins.add("http://localhost:3000");
+    origins.add("http://127.0.0.1:8081");
+    origins.add("http://127.0.0.1:19006");
+    origins.add("http://127.0.0.1:3000");
+
+    // Allow local network IPs (for Expo Go on physical devices)
+    const origin = req.header("origin");
+    if (origin) {
+      // Allow any local network IP (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+      const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|localhost|127\.0\.0\.1)/.test(origin);
+      if (isLocalNetwork) {
+        origins.add(origin);
+      }
+    }
+
     if (process.env.REPLIT_DEV_DOMAIN) {
       origins.add(`https://${process.env.REPLIT_DEV_DOMAIN}`);
     }
@@ -27,8 +45,6 @@ function setupCors(app: express.Application) {
         origins.add(`https://${d.trim()}`);
       });
     }
-
-    const origin = req.header("origin");
 
     if (origin && origins.has(origin)) {
       res.header("Access-Control-Allow-Origin", origin);

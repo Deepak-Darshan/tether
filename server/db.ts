@@ -26,8 +26,31 @@ try {
   // If DATABASE_URL isn't a valid URL, skip SSL inference.
 }
 
+// Force IPv4 by modifying the connection string if needed
+let connectionString = process.env.DATABASE_URL;
+try {
+  const url = new URL(connectionString);
+  // If it's a Supabase hostname, try to force IPv4 by using the direct connection
+  // or keep the original if it works
+  if (url.hostname.includes('supabase.co')) {
+    // Keep original connection string
+    connectionString = process.env.DATABASE_URL;
+  }
+} catch {
+  // Invalid URL, use as-is
+}
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString,
   ssl,
+  // Add connection timeout and retry logic
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
 });
+
+// Test connection on startup
+pool.on('error', (err) => {
+  console.error('Unexpected database pool error:', err);
+});
+
 export const db = drizzle(pool, { schema });

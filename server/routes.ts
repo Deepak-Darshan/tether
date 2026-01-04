@@ -71,7 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
       }
-      res.status(500).json({ message: "Internal server error" });
+      console.error("Registration error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Internal server error", details: process.env.NODE_ENV === "development" ? errorMessage : undefined });
     }
   });
 
@@ -108,7 +110,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: error.errors[0].message });
       }
-      res.status(500).json({ message: "Internal server error" });
+      console.error("Login error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Internal server error", details: process.env.NODE_ENV === "development" ? errorMessage : undefined });
     }
   });
 
