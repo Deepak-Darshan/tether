@@ -1,0 +1,32 @@
+
+> my-app@1.0.0 server:dev
+> NODE_ENV=development tsx server/index.ts
+
+Serving static Expo files with dynamic manifest routing
+Expo routing: Checking expo-platform header on / and /manifest
+express server serving on port 3001
+Registration error: error: password authentication failed for user "postgres"
+    at /Users/sidaksingh/Desktop/github/tether/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/Users/sidaksingh/Desktop/github/tether/node_modules/src/node-postgres/session.ts:104:19)
+    at async DatabaseStorage.getUserByUsername (/Users/sidaksingh/Desktop/github/tether/server/storage.ts:38:20)
+    at async <anonymous> (/Users/sidaksingh/Desktop/github/tether/server/routes.ts:43:28) {
+  length: 78,
+  severity: 'FATAL',
+  code: '28P01',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined
+}
+POST /api/auth/register 500 in 2889ms :: {"message":"Internal server error","de…

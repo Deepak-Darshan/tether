@@ -20,7 +20,7 @@ try {
   if (wantSsl) {
     // Supabase requires SSL; their cert chain may not be trusted by default.
     // Using rejectUnauthorized:false is common for Supabase connections.
-    ssl = { rejectUnauthorized: false } as unknown as pg.ClientConfig["ssl"]; 
+    ssl = { rejectUnauthorized: false } as unknown as pg.ClientConfig["ssl"];
   }
 } catch {
   // If DATABASE_URL isn't a valid URL, skip SSL inference.
@@ -32,7 +32,7 @@ try {
   const url = new URL(connectionString);
   // If it's a Supabase hostname, try to force IPv4 by using the direct connection
   // or keep the original if it works
-  if (url.hostname.includes('supabase.co')) {
+  if (url.hostname.includes("supabase.co")) {
     // Keep original connection string
     connectionString = process.env.DATABASE_URL;
   }
@@ -49,8 +49,8 @@ export const pool = new Pool({
 });
 
 // Test connection on startup
-pool.on('error', (err) => {
-  console.error('Unexpected database pool error:', err);
+pool.on("error", (err) => {
+  console.error("Unexpected database pool error:", err);
 });
 
 export const db = drizzle(pool, { schema });

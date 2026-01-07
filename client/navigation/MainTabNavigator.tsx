@@ -3,8 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Platform, StyleSheet } from "react-native";
-import { useScreenOptions } from "@/hooks/useScreenOptions";
-import { Colors } from "@/constants/theme";
+import { useTheme } from "@/hooks/useTheme";
 
 import DeckScreen from "@/screens/DeckScreen";
 import MatchesScreen from "@/screens/MatchesScreen";
@@ -31,14 +30,22 @@ interface MainTabNavigatorProps {
 }
 
 export default function MainTabNavigator({ onMatch }: MainTabNavigatorProps) {
-  const screenOptions = useScreenOptions();
-  const theme = Colors.dark;
+  const { theme } = useTheme();
 
   return (
     <Tab.Navigator
       initialRouteName="DeckTab"
       screenOptions={{
-        ...screenOptions,
+        headerTitleAlign: "center",
+        headerTintColor: theme.text,
+        headerTransparent: Platform.OS === "ios",
+        headerStyle: {
+          backgroundColor: Platform.select({
+            ios: "transparent",
+            android: theme.backgroundRoot,
+            web: theme.backgroundRoot,
+          }),
+        },
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarStyle: {
@@ -89,7 +96,7 @@ export default function MainTabNavigator({ onMatch }: MainTabNavigatorProps) {
         component={ProfileScreen}
         options={{
           title: "Profile",
-          headerTitle: "My Profile",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),

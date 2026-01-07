@@ -30,7 +30,10 @@ function setupCors(app: express.Application) {
     const origin = req.header("origin");
     if (origin) {
       // Allow any local network IP (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
-      const isLocalNetwork = /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|localhost|127\.0\.0\.1)/.test(origin);
+      const isLocalNetwork =
+        /^https?:\/\/(192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|localhost|127\.0\.0\.1)/.test(
+          origin,
+        );
       if (isLocalNetwork) {
         origins.add(origin);
       }
@@ -74,6 +77,13 @@ function setupBodyParsing(app: express.Application) {
   );
 
   app.use(express.urlencoded({ extended: false }));
+
+  // Serve uploaded files
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use("/uploads", express.static(uploadsDir));
 }
 
 function setupRequestLogging(app: express.Application) {

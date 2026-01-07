@@ -18,14 +18,22 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   getSwipe(swiperId: string, swipeeId: string): Promise<Swipe | undefined>;
-  createSwipe(swiperId: string, swipeeId: string, direction: string): Promise<Swipe>;
+  createSwipe(
+    swiperId: string,
+    swipeeId: string,
+    direction: string,
+  ): Promise<Swipe>;
   getMatches(userId: string): Promise<Match[]>;
   getMatch(matchId: string): Promise<Match | undefined>;
   createMatch(user1Id: string, user2Id: string): Promise<Match>;
   getUnswipedUsers(userId: string): Promise<User[]>;
   getMatchedUsers(userId: string): Promise<User[]>;
   getMessages(matchId: string): Promise<Message[]>;
-  createMessage(matchId: string, senderId: string, content: string): Promise<Message>;
+  createMessage(
+    matchId: string,
+    senderId: string,
+    content: string,
+  ): Promise<Message>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -35,7 +43,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -44,12 +55,22 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
-    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+  async updateUser(
+    id: string,
+    data: Partial<InsertUser>,
+  ): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
     return user || undefined;
   }
 
-  async getSwipe(swiperId: string, swipeeId: string): Promise<Swipe | undefined> {
+  async getSwipe(
+    swiperId: string,
+    swipeeId: string,
+  ): Promise<Swipe | undefined> {
     const [swipe] = await db
       .select()
       .from(swipes)
@@ -57,7 +78,11 @@ export class DatabaseStorage implements IStorage {
     return swipe || undefined;
   }
 
-  async createSwipe(swiperId: string, swipeeId: string, direction: string): Promise<Swipe> {
+  async createSwipe(
+    swiperId: string,
+    swipeeId: string,
+    direction: string,
+  ): Promise<Swipe> {
     const [swipe] = await db
       .insert(swipes)
       .values({ swiperId, swipeeId, direction })
@@ -99,7 +124,7 @@ export class DatabaseStorage implements IStorage {
   async getMatchedUsers(userId: string): Promise<User[]> {
     const userMatches = await this.getMatches(userId);
     const matchedUserIds = userMatches.map((m) =>
-      m.user1Id === userId ? m.user2Id : m.user1Id
+      m.user1Id === userId ? m.user2Id : m.user1Id,
     );
 
     if (matchedUserIds.length === 0) {
@@ -115,7 +140,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMatch(matchId: string): Promise<Match | undefined> {
-    const [match] = await db.select().from(matches).where(eq(matches.id, matchId));
+    const [match] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, matchId));
     return match || undefined;
   }
 
@@ -127,7 +155,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(messages.createdAt);
   }
 
-  async createMessage(matchId: string, senderId: string, content: string): Promise<Message> {
+  async createMessage(
+    matchId: string,
+    senderId: string,
+    content: string,
+  ): Promise<Message> {
     const [message] = await db
       .insert(messages)
       .values({ matchId, senderId, content })

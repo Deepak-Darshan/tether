@@ -6,9 +6,10 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
 import { Feather } from "@expo/vector-icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -29,7 +30,10 @@ interface Message {
 type Props = NativeStackScreenProps<any, "Chat">;
 
 export default function ChatScreen({ route }: Props) {
-  const { matchId, userName } = route.params as { matchId: string; userName: string };
+  const { matchId, userName } = route.params as {
+    matchId: string;
+    userName: string;
+  };
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -38,7 +42,7 @@ export default function ChatScreen({ route }: Props) {
 
   const [messageText, setMessageText] = useState("");
 
-  const { data: messages = [], isLoading } = useQuery<Message[]>({
+  const { data: messagesData = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/matches", matchId, "messages"],
     queryFn: async () => {
       const baseUrl = getApiUrl();
@@ -52,6 +56,8 @@ export default function ChatScreen({ route }: Props) {
     enabled: !!token && !!matchId,
     refetchInterval: 3000,
   });
+
+  const messages = [...messagesData].reverse();
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -71,16 +77,61 @@ export default function ChatScreen({ route }: Props) {
       }
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/matches", matchId, "messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+    onMutate: async (content: string) => {
+      // Clear input immediately
       setMessageText("");
+
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: ["/api/matches", matchId, "messages"],
+      });
+
+      // Snapshot the previous value
+      const previousMessages = queryClient.getQueryData([
+        "/api/matches",
+        matchId,
+        "messages",
+      ]);
+
+      // Optimistically update with new message
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        senderId: user?.id || "",
+        content,
+        createdAt: new Date().toISOString(),
+      };
+
+      queryClient.setQueryData(
+        ["/api/matches", matchId, "messages"],
+        (old: Message[] = []) => [...old, optimisticMessage],
+      );
+
+      return { previousMessages };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousMessages) {
+        queryClient.setQueryData(
+          ["/api/matches", matchId, "messages"],
+          context.previousMessages,
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["/api/matches", matchId, "messages"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
     },
   });
 
   useEffect(() => {
     if (messages.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(
+        () =>
+          flatListRef.current?.scrollToOffset({ offset: 0, animated: true }),
+        100,
+      );
     }
   }, [messages.length]);
 
@@ -96,15 +147,19 @@ export default function ChatScreen({ route }: Props) {
         <View
           style={[
             styles.messageBubble,
-            isOwn
-              ? { backgroundColor: theme.primary }
-              : { backgroundColor: theme.backgroundSecondary },
+            {
+              backgroundColor: isOwn ? "#00f0ff" : "#334155",
+              opacity: 1,
+            },
           ]}
         >
           <ThemedText
             style={[
               styles.messageText,
-              isOwn ? { color: theme.backgroundRoot } : { color: theme.text },
+              {
+                color: isOwn ? "#0f172a" : "#FFFFFF",
+                opacity: 1,
+              },
             ]}
           >
             {item.content}
@@ -123,53 +178,78 @@ export default function ChatScreen({ route }: Props) {
   }
 
   return (
-    <ThemedView style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
-        contentContainerStyle={[styles.messagesList, { paddingBottom: Spacing.md }]}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Start the conversation with {userName}
-            </ThemedText>
-          </View>
-        }
-      />
-
-      <BlurView
-        intensity={40}
-        tint="dark"
-        style={[styles.inputContainer, { paddingBottom: insets.bottom + Spacing.md }]}
-      >
-        <TextInput
-          style={[styles.input, { color: theme.text, borderColor: theme.border }]}
-          value={messageText}
-          onChangeText={setMessageText}
-          placeholder="Type a message..."
-          placeholderTextColor={theme.textSecondary}
-          multiline
-          maxLength={500}
-        />
-        <Pressable
-          style={[
-            styles.sendButton,
-            { backgroundColor: messageText.trim() ? theme.primary : theme.backgroundSecondary },
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+    >
+      <ThemedView style={styles.container}>
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMessage}
+          contentContainerStyle={[
+            styles.messagesList,
+            { paddingTop: Spacing.lg },
           ]}
-          onPress={handleSend}
-          disabled={!messageText.trim() || sendMutation.isPending}
+          showsVerticalScrollIndicator={false}
+          inverted
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <ThemedText
+                style={[styles.emptyText, { color: theme.textSecondary }]}
+              >
+                Start the conversation with {userName}
+              </ThemedText>
+            </View>
+          }
+        />
+
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              paddingBottom: insets.bottom + Spacing.md,
+              backgroundColor: theme.backgroundRoot,
+            },
+          ]}
         >
-          {sendMutation.isPending ? (
-            <ActivityIndicator size="small" color={theme.backgroundRoot} />
-          ) : (
-            <Feather name="send" size={20} color={messageText.trim() ? theme.backgroundRoot : theme.textSecondary} />
-          )}
-        </Pressable>
-      </BlurView>
-    </ThemedView>
+          <TextInput
+            style={[
+              styles.input,
+              { color: theme.text, borderColor: theme.border },
+            ]}
+            value={messageText}
+            onChangeText={setMessageText}
+            placeholder="Type a message..."
+            placeholderTextColor={theme.textSecondary}
+            multiline
+            maxLength={500}
+          />
+          <Pressable
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: messageText.trim()
+                  ? theme.primary
+                  : theme.backgroundSecondary,
+              },
+            ]}
+            onPress={handleSend}
+            disabled={!messageText.trim()}
+          >
+            <Feather
+              name="send"
+              size={20}
+              color={
+                messageText.trim() ? theme.backgroundRoot : theme.textSecondary
+              }
+            />
+          </Pressable>
+        </View>
+      </ThemedView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -182,7 +262,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   messagesList: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
     flexGrow: 1,
   },
   messageRow: {
@@ -197,9 +278,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
+    opacity: 1,
   },
   messageText: {
     fontSize: 16,
+    opacity: 1,
   },
   emptyContainer: {
     flex: 1,

@@ -44,7 +44,10 @@ export default function LoginScreen() {
     try {
       await login(username.trim(), password);
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Login failed");
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Login failed",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +58,10 @@ export default function LoginScreen() {
       <KeyboardAwareScrollViewCompat
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + Spacing["4xl"], paddingBottom: insets.bottom + Spacing.xl },
+          {
+            paddingTop: insets.top + Spacing["4xl"],
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
         ]}
       >
         <View style={styles.header}>
@@ -70,9 +76,17 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Feather name="user" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Feather
+              name="user"
+              size={20}
+              color={theme.textSecondary}
+              style={styles.inputIcon}
+            />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="Username"
               placeholderTextColor={theme.textSecondary}
               value={username}
@@ -83,9 +97,17 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Feather name="lock" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Feather
+              name="lock"
+              size={20}
+              color={theme.textSecondary}
+              style={styles.inputIcon}
+            />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="Password"
               placeholderTextColor={theme.textSecondary}
               value={password}
@@ -121,7 +143,7 @@ export default function LoginScreen() {
             style={styles.linkContainer}
           >
             <ThemedText style={{ color: theme.textSecondary }}>
-              Don't have an account?{" "}
+              Do not have an account?{" "}
             </ThemedText>
             <ThemedText style={{ color: theme.primary }}>Sign Up</ThemedText>
           </Pressable>

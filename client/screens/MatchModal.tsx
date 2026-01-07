@@ -50,8 +50,8 @@ export default function MatchModal({ matchedUser, onClose }: MatchModalProps) {
         200,
         withSequence(
           withSpring(1.3, { damping: 10 }),
-          withSpring(1, { damping: 15 })
-        )
+          withSpring(1, { damping: 15 }),
+        ),
       );
     }
   }, [matchedUser]);
@@ -79,7 +79,10 @@ export default function MatchModal({ matchedUser, onClose }: MatchModalProps) {
       <Animated.View
         style={[
           styles.content,
-          { paddingTop: insets.top + Spacing["3xl"], paddingBottom: insets.bottom + Spacing["3xl"] },
+          {
+            paddingTop: insets.top + Spacing["3xl"],
+            paddingBottom: insets.bottom + Spacing["3xl"],
+          },
           cardStyle,
         ]}
       >
@@ -101,8 +104,18 @@ export default function MatchModal({ matchedUser, onClose }: MatchModalProps) {
           You and {matchedUser.name} have matched!
         </ThemedText>
 
-        <View style={[styles.matchCard, { backgroundColor: theme.backgroundSecondary }]}>
-          <View style={[styles.avatar, { backgroundColor: theme.backgroundTertiary }]}>
+        <View
+          style={[
+            styles.matchCard,
+            { backgroundColor: theme.backgroundSecondary },
+          ]}
+        >
+          <View
+            style={[
+              styles.avatar,
+              { backgroundColor: theme.backgroundTertiary },
+            ]}
+          >
             <ThemedText type="h2" style={{ color: theme.primary }}>
               {matchedUser.name.charAt(0).toUpperCase()}
             </ThemedText>
@@ -113,7 +126,9 @@ export default function MatchModal({ matchedUser, onClose }: MatchModalProps) {
           </ThemedText>
 
           {matchedUser.headline ? (
-            <ThemedText style={[styles.headline, { color: theme.textSecondary }]}>
+            <ThemedText
+              style={[styles.headline, { color: theme.textSecondary }]}
+            >
               {matchedUser.headline}
             </ThemedText>
           ) : null}

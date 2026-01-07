@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
+import { Image } from "expo-image";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
@@ -20,10 +21,7 @@ import Animated, {
   interpolate,
   Extrapolation,
 } from "react-native-reanimated";
-import {
-  Gesture,
-  GestureDetector,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -55,7 +53,11 @@ interface SwipeResponse {
   } | null;
 }
 
-export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse["matchedUser"]) => void }) {
+export default function DeckScreen({
+  onMatch,
+}: {
+  onMatch?: (user: SwipeResponse["matchedUser"]) => void;
+}) {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const headerHeight = useHeaderHeight();
@@ -83,7 +85,13 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
   });
 
   const swipeMutation = useMutation({
-    mutationFn: async ({ swipeeId, direction }: { swipeeId: string; direction: "left" | "right" }) => {
+    mutationFn: async ({
+      swipeeId,
+      direction,
+    }: {
+      swipeeId: string;
+      direction: "left" | "right";
+    }) => {
       const baseUrl = getApiUrl();
       const url = `${baseUrl.replace(/\/$/, "")}/api/swipe`;
       const response = await fetch(url, {
@@ -119,7 +127,8 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
     (direction: "left" | "right") => {
       if (!currentUser) return;
 
-      const targetX = direction === "right" ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
+      const targetX =
+        direction === "right" ? SCREEN_WIDTH * 1.5 : -SCREEN_WIDTH * 1.5;
 
       translateX.value = withTiming(targetX, { duration: 300 }, () => {
         runOnJS(moveToNextCard)();
@@ -127,7 +136,7 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
 
       swipeMutation.mutate({ swipeeId: currentUser.id, direction });
     },
-    [currentUser, swipeMutation, moveToNextCard]
+    [currentUser, swipeMutation, moveToNextCard],
   );
 
   const panGesture = Gesture.Pan()
@@ -138,7 +147,7 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
         event.translationX,
         [-SCREEN_WIDTH / 2, 0, SCREEN_WIDTH / 2],
         [-15, 0, 15],
-        Extrapolation.CLAMP
+        Extrapolation.CLAMP,
       );
     })
     .onEnd((event) => {
@@ -165,7 +174,7 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
       translateX.value,
       [0, SWIPE_THRESHOLD],
       [0, 1],
-      Extrapolation.CLAMP
+      Extrapolation.CLAMP,
     ),
   }));
 
@@ -174,7 +183,7 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
       translateX.value,
       [-SWIPE_THRESHOLD, 0],
       [1, 0],
-      Extrapolation.CLAMP
+      Extrapolation.CLAMP,
     ),
   }));
 
@@ -192,14 +201,19 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
         style={[
           styles.container,
           styles.centered,
-          { paddingTop: headerHeight + Spacing.xl, paddingBottom: tabBarHeight + Spacing.xl },
+          {
+            paddingTop: headerHeight + Spacing.xl,
+            paddingBottom: tabBarHeight + Spacing.xl,
+          },
         ]}
       >
         <Feather name="users" size={64} color={theme.textSecondary} />
         <ThemedText type="h3" style={styles.emptyText}>
           No more profiles
         </ThemedText>
-        <ThemedText style={[styles.emptySubtext, { color: theme.textSecondary }]}>
+        <ThemedText
+          style={[styles.emptySubtext, { color: theme.textSecondary }]}
+        >
           Check back later for new connections
         </ThemedText>
       </ThemedView>
@@ -210,7 +224,10 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
     <ThemedView
       style={[
         styles.container,
-        { paddingTop: headerHeight + Spacing.xl, paddingBottom: tabBarHeight + Spacing["3xl"] },
+        {
+          paddingTop: headerHeight + Spacing.xl,
+          paddingBottom: tabBarHeight + Spacing["3xl"],
+        },
       ]}
     >
       <View style={styles.cardContainer}>
@@ -224,11 +241,15 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
           <Animated.View style={[styles.card, cardStyle]}>
             <ProfileCard user={currentUser} theme={theme} />
 
-            <Animated.View style={[styles.stamp, styles.likeStamp, likeOpacity]}>
+            <Animated.View
+              style={[styles.stamp, styles.likeStamp, likeOpacity]}
+            >
               <ThemedText style={styles.stampText}>CONNECT</ThemedText>
             </Animated.View>
 
-            <Animated.View style={[styles.stamp, styles.nopeStamp, nopeOpacity]}>
+            <Animated.View
+              style={[styles.stamp, styles.nopeStamp, nopeOpacity]}
+            >
               <ThemedText style={styles.stampText}>PASS</ThemedText>
             </Animated.View>
           </Animated.View>
@@ -237,14 +258,20 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
 
       <View style={styles.actions}>
         <Pressable
-          style={[styles.actionButton, { backgroundColor: "rgba(239, 68, 68, 0.2)" }]}
+          style={[
+            styles.actionButton,
+            { backgroundColor: "rgba(239, 68, 68, 0.2)" },
+          ]}
           onPress={() => handleSwipe("left")}
         >
           <Feather name="x" size={32} color={theme.error} />
         </Pressable>
 
         <Pressable
-          style={[styles.actionButton, { backgroundColor: "rgba(0, 240, 255, 0.2)" }]}
+          style={[
+            styles.actionButton,
+            { backgroundColor: "rgba(0, 240, 255, 0.2)" },
+          ]}
           onPress={() => handleSwipe("right")}
         >
           <Feather name="check" size={32} color={theme.primary} />
@@ -254,15 +281,38 @@ export default function DeckScreen({ onMatch }: { onMatch?: (user: SwipeResponse
   );
 }
 
-function ProfileCard({ user, theme }: { user: DeckUser; theme: typeof Colors.dark }) {
-  const skillsArray = user.skills?.split(",").map((s) => s.trim()).filter(Boolean) || [];
+function ProfileCard({
+  user,
+  theme,
+}: {
+  user: DeckUser;
+  theme: typeof Colors.dark;
+}) {
+  const skillsArray =
+    user.skills
+      ?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean) || [];
+  const imageUrl = user.avatarUrl
+    ? `${getApiUrl().replace(/\/$/, "")}${user.avatarUrl}`
+    : null;
 
   return (
     <BlurView intensity={40} tint="dark" style={styles.cardContent}>
-      <View style={[styles.avatar, { backgroundColor: theme.backgroundSecondary }]}>
-        <ThemedText type="h1" style={{ color: theme.primary }}>
-          {user.name.charAt(0).toUpperCase()}
-        </ThemedText>
+      <View
+        style={[styles.avatar, { backgroundColor: theme.backgroundSecondary }]}
+      >
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={styles.avatarImage}
+            contentFit="cover"
+          />
+        ) : (
+          <ThemedText type="h1" style={{ color: theme.primary }}>
+            {user.name.charAt(0).toUpperCase()}
+          </ThemedText>
+        )}
       </View>
 
       <ThemedText type="h3" style={styles.name}>
@@ -276,7 +326,10 @@ function ProfileCard({ user, theme }: { user: DeckUser; theme: typeof Colors.dar
       ) : null}
 
       {user.bio ? (
-        <ThemedText style={[styles.bio, { color: theme.textSecondary }]} numberOfLines={4}>
+        <ThemedText
+          style={[styles.bio, { color: theme.textSecondary }]}
+          numberOfLines={4}
+        >
           {user.bio}
         </ThemedText>
       ) : null}
@@ -286,9 +339,14 @@ function ProfileCard({ user, theme }: { user: DeckUser; theme: typeof Colors.dar
           {skillsArray.slice(0, 5).map((skill, index) => (
             <View
               key={index}
-              style={[styles.skillTag, { backgroundColor: "rgba(188, 19, 254, 0.2)" }]}
+              style={[
+                styles.skillTag,
+                { backgroundColor: "rgba(188, 19, 254, 0.2)" },
+              ]}
             >
-              <ThemedText style={[styles.skillText, { color: theme.secondary }]}>
+              <ThemedText
+                style={[styles.skillText, { color: theme.secondary }]}
+              >
                 {skill}
               </ThemedText>
             </View>
@@ -341,6 +399,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: Spacing.xl,
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 60,
   },
   name: {
     textAlign: "center",

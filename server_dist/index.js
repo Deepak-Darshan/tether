@@ -26,14 +26,16 @@ __export(schema_exports, {
   swipes: () => swipes,
   swipesRelations: () => swipesRelations,
   users: () => users,
-  usersRelations: () => usersRelations
+  usersRelations: () => usersRelations,
 });
 import { sql, relations } from "drizzle-orm";
 import { pgTable, text, varchar, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 var users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
@@ -41,68 +43,86 @@ var users = pgTable("users", {
   bio: text("bio"),
   skills: text("skills"),
   avatarUrl: text("avatar_url"),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 var swipes = pgTable("swipes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  swiperId: varchar("swiper_id").notNull().references(() => users.id),
-  swipeeId: varchar("swipee_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  swiperId: varchar("swiper_id")
+    .notNull()
+    .references(() => users.id),
+  swipeeId: varchar("swipee_id")
+    .notNull()
+    .references(() => users.id),
   direction: text("direction").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 var matches = pgTable("matches", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  user1Id: varchar("user1_id").notNull().references(() => users.id),
-  user2Id: varchar("user2_id").notNull().references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  user1Id: varchar("user1_id")
+    .notNull()
+    .references(() => users.id),
+  user2Id: varchar("user2_id")
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 var usersRelations = relations(users, ({ many }) => ({
   swipesGiven: many(swipes, { relationName: "swipesGiven" }),
   swipesReceived: many(swipes, { relationName: "swipesReceived" }),
   matchesAsUser1: many(matches, { relationName: "matchesAsUser1" }),
-  matchesAsUser2: many(matches, { relationName: "matchesAsUser2" })
+  matchesAsUser2: many(matches, { relationName: "matchesAsUser2" }),
 }));
 var swipesRelations = relations(swipes, ({ one }) => ({
   swiper: one(users, {
     fields: [swipes.swiperId],
     references: [users.id],
-    relationName: "swipesGiven"
+    relationName: "swipesGiven",
   }),
   swipee: one(users, {
     fields: [swipes.swipeeId],
     references: [users.id],
-    relationName: "swipesReceived"
-  })
+    relationName: "swipesReceived",
+  }),
 }));
 var matchesRelations = relations(matches, ({ one, many }) => ({
   user1: one(users, {
     fields: [matches.user1Id],
     references: [users.id],
-    relationName: "matchesAsUser1"
+    relationName: "matchesAsUser1",
   }),
   user2: one(users, {
     fields: [matches.user2Id],
     references: [users.id],
-    relationName: "matchesAsUser2"
+    relationName: "matchesAsUser2",
   }),
-  messages: many(messages)
+  messages: many(messages),
 }));
 var messages = pgTable("messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  matchId: varchar("match_id").notNull().references(() => matches.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  matchId: varchar("match_id")
+    .notNull()
+    .references(() => matches.id),
+  senderId: varchar("sender_id")
+    .notNull()
+    .references(() => users.id),
   content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 var messagesRelations = relations(messages, ({ one }) => ({
   match: one(matches, {
     fields: [messages.matchId],
-    references: [matches.id]
+    references: [matches.id],
   }),
   sender: one(users, {
     fields: [messages.senderId],
-    references: [users.id]
-  })
+    references: [users.id],
+  }),
 }));
 var insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -111,24 +131,24 @@ var insertUserSchema = createInsertSchema(users).pick({
   headline: true,
   bio: true,
   skills: true,
-  avatarUrl: true
+  avatarUrl: true,
 });
 var loginSchema = z.object({
   username: z.string().min(3),
-  password: z.string().min(6)
+  password: z.string().min(6),
 });
 var registerSchema = z.object({
   username: z.string().min(3),
   password: z.string().min(6),
-  name: z.string().min(1)
+  name: z.string().min(1),
 });
 var swipeSchema = z.object({
   swipeeId: z.string(),
-  direction: z.enum(["left", "right"])
+  direction: z.enum(["left", "right"]),
 });
 var messageSchema = z.object({
   matchId: z.string(),
-  content: z.string().min(1)
+  content: z.string().min(1),
 });
 
 // server/db.ts
@@ -137,7 +157,7 @@ import pg from "pg";
 var { Pool } = pg;
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?"
+    "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 var pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -151,7 +171,10 @@ var DatabaseStorage = class {
     return user || void 0;
   }
   async getUserByUsername(username) {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user || void 0;
   }
   async createUser(insertUser) {
@@ -159,26 +182,45 @@ var DatabaseStorage = class {
     return user;
   }
   async updateUser(id, data) {
-    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    const [user] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
     return user || void 0;
   }
   async getSwipe(swiperId, swipeeId) {
-    const [swipe] = await db.select().from(swipes).where(and(eq(swipes.swiperId, swiperId), eq(swipes.swipeeId, swipeeId)));
+    const [swipe] = await db
+      .select()
+      .from(swipes)
+      .where(and(eq(swipes.swiperId, swiperId), eq(swipes.swipeeId, swipeeId)));
     return swipe || void 0;
   }
   async createSwipe(swiperId, swipeeId, direction) {
-    const [swipe] = await db.insert(swipes).values({ swiperId, swipeeId, direction }).returning();
+    const [swipe] = await db
+      .insert(swipes)
+      .values({ swiperId, swipeeId, direction })
+      .returning();
     return swipe;
   }
   async getMatches(userId) {
-    return db.select().from(matches).where(or(eq(matches.user1Id, userId), eq(matches.user2Id, userId)));
+    return db
+      .select()
+      .from(matches)
+      .where(or(eq(matches.user1Id, userId), eq(matches.user2Id, userId)));
   }
   async createMatch(user1Id, user2Id) {
-    const [match] = await db.insert(matches).values({ user1Id, user2Id }).returning();
+    const [match] = await db
+      .insert(matches)
+      .values({ user1Id, user2Id })
+      .returning();
     return match;
   }
   async getUnswipedUsers(userId) {
-    const userSwipes = await db.select({ swipeeId: swipes.swipeeId }).from(swipes).where(eq(swipes.swiperId, userId));
+    const userSwipes = await db
+      .select({ swipeeId: swipes.swipeeId })
+      .from(swipes)
+      .where(eq(swipes.swiperId, userId));
     const swipedIds = userSwipes.map((s) => s.swipeeId);
     swipedIds.push(userId);
     if (swipedIds.length === 1) {
@@ -188,8 +230,8 @@ var DatabaseStorage = class {
   }
   async getMatchedUsers(userId) {
     const userMatches = await this.getMatches(userId);
-    const matchedUserIds = userMatches.map(
-      (m) => m.user1Id === userId ? m.user2Id : m.user1Id
+    const matchedUserIds = userMatches.map((m) =>
+      m.user1Id === userId ? m.user2Id : m.user1Id,
     );
     if (matchedUserIds.length === 0) {
       return [];
@@ -202,14 +244,24 @@ var DatabaseStorage = class {
     return matchedUsers;
   }
   async getMatch(matchId) {
-    const [match] = await db.select().from(matches).where(eq(matches.id, matchId));
+    const [match] = await db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, matchId));
     return match || void 0;
   }
   async getMessages(matchId) {
-    return db.select().from(messages).where(eq(messages.matchId, matchId)).orderBy(messages.createdAt);
+    return db
+      .select()
+      .from(messages)
+      .where(eq(messages.matchId, matchId))
+      .orderBy(messages.createdAt);
   }
   async createMessage(matchId, senderId, content) {
-    const [message] = await db.insert(messages).values({ matchId, senderId, content }).returning();
+    const [message] = await db
+      .insert(messages)
+      .values({ matchId, senderId, content })
+      .returning();
     return message;
   }
 };
@@ -253,7 +305,7 @@ async function registerRoutes(app2) {
       const user = await storage.createUser({
         username: data.username,
         password: hashedPassword,
-        name: data.name
+        name: data.name,
       });
       const token = randomUUID();
       sessions.set(token, user.id);
@@ -266,8 +318,8 @@ async function registerRoutes(app2) {
           headline: user.headline,
           bio: user.bio,
           skills: user.skills,
-          avatarUrl: user.avatarUrl
-        }
+          avatarUrl: user.avatarUrl,
+        },
       });
     } catch (error) {
       if (error instanceof z2.ZodError) {
@@ -298,8 +350,8 @@ async function registerRoutes(app2) {
           headline: user.headline,
           bio: user.bio,
           skills: user.skills,
-          avatarUrl: user.avatarUrl
-        }
+          avatarUrl: user.avatarUrl,
+        },
       });
     } catch (error) {
       if (error instanceof z2.ZodError) {
@@ -327,7 +379,7 @@ async function registerRoutes(app2) {
       headline: user.headline,
       bio: user.bio,
       skills: user.skills,
-      avatarUrl: user.avatarUrl
+      avatarUrl: user.avatarUrl,
     });
   });
   app2.put("/api/users/me", async (req, res) => {
@@ -341,7 +393,7 @@ async function registerRoutes(app2) {
       headline,
       bio,
       skills,
-      avatarUrl
+      avatarUrl,
     });
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
@@ -353,7 +405,7 @@ async function registerRoutes(app2) {
       headline: updatedUser.headline,
       bio: updatedUser.bio,
       skills: updatedUser.skills,
-      avatarUrl: updatedUser.avatarUrl
+      avatarUrl: updatedUser.avatarUrl,
     });
   });
   app2.get("/api/deck", async (req, res) => {
@@ -370,8 +422,8 @@ async function registerRoutes(app2) {
         headline: u.headline,
         bio: u.bio,
         skills: u.skills,
-        avatarUrl: u.avatarUrl
-      }))
+        avatarUrl: u.avatarUrl,
+      })),
     );
   });
   app2.post("/api/swipe", async (req, res) => {
@@ -398,12 +450,14 @@ async function registerRoutes(app2) {
       res.json({
         success: true,
         isMatch,
-        matchedUser: matchedUser ? {
-          id: matchedUser.id,
-          name: matchedUser.name,
-          headline: matchedUser.headline,
-          avatarUrl: matchedUser.avatarUrl
-        } : null
+        matchedUser: matchedUser
+          ? {
+              id: matchedUser.id,
+              name: matchedUser.name,
+              headline: matchedUser.headline,
+              avatarUrl: matchedUser.avatarUrl,
+            }
+          : null,
       });
     } catch (error) {
       if (error instanceof z2.ZodError) {
@@ -420,29 +474,34 @@ async function registerRoutes(app2) {
     const userMatches = await storage.getMatches(user.id);
     const matchesWithUsers = await Promise.all(
       userMatches.map(async (match) => {
-        const otherUserId = match.user1Id === user.id ? match.user2Id : match.user1Id;
+        const otherUserId =
+          match.user1Id === user.id ? match.user2Id : match.user1Id;
         const otherUser = await storage.getUser(otherUserId);
         const msgs = await storage.getMessages(match.id);
         const lastMessage = msgs.length > 0 ? msgs[msgs.length - 1] : null;
         return {
           matchId: match.id,
-          user: otherUser ? {
-            id: otherUser.id,
-            username: otherUser.username,
-            name: otherUser.name,
-            headline: otherUser.headline,
-            bio: otherUser.bio,
-            skills: otherUser.skills,
-            avatarUrl: otherUser.avatarUrl
-          } : null,
-          lastMessage: lastMessage ? {
-            content: lastMessage.content,
-            senderId: lastMessage.senderId,
-            createdAt: lastMessage.createdAt
-          } : null,
-          createdAt: match.createdAt
+          user: otherUser
+            ? {
+                id: otherUser.id,
+                username: otherUser.username,
+                name: otherUser.name,
+                headline: otherUser.headline,
+                bio: otherUser.bio,
+                skills: otherUser.skills,
+                avatarUrl: otherUser.avatarUrl,
+              }
+            : null,
+          lastMessage: lastMessage
+            ? {
+                content: lastMessage.content,
+                senderId: lastMessage.senderId,
+                createdAt: lastMessage.createdAt,
+              }
+            : null,
+          createdAt: match.createdAt,
         };
-      })
+      }),
     );
     res.json(matchesWithUsers.filter((m) => m.user !== null));
   });
@@ -460,12 +519,14 @@ async function registerRoutes(app2) {
       return res.status(403).json({ message: "Access denied" });
     }
     const msgs = await storage.getMessages(matchId);
-    res.json(msgs.map((m) => ({
-      id: m.id,
-      senderId: m.senderId,
-      content: m.content,
-      createdAt: m.createdAt
-    })));
+    res.json(
+      msgs.map((m) => ({
+        id: m.id,
+        senderId: m.senderId,
+        content: m.content,
+        createdAt: m.createdAt,
+      })),
+    );
   });
   app2.post("/api/matches/:matchId/messages", async (req, res) => {
     const user = await getUserFromToken(req);
@@ -482,12 +543,16 @@ async function registerRoutes(app2) {
       if (match.user1Id !== user.id && match.user2Id !== user.id) {
         return res.status(403).json({ message: "Access denied" });
       }
-      const message = await storage.createMessage(matchId, user.id, data.content);
+      const message = await storage.createMessage(
+        matchId,
+        user.id,
+        data.content,
+      );
       res.json({
         id: message.id,
         senderId: message.senderId,
         content: message.content,
-        createdAt: message.createdAt
+        createdAt: message.createdAt,
       });
     } catch (error) {
       if (error instanceof z2.ZodError) {
@@ -521,7 +586,7 @@ function setupCors(app2) {
       res.header("Access-Control-Allow-Origin", origin);
       res.header(
         "Access-Control-Allow-Methods",
-        "GET, POST, PUT, DELETE, OPTIONS"
+        "GET, POST, PUT, DELETE, OPTIONS",
       );
       res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
       res.header("Access-Control-Allow-Credentials", "true");
@@ -537,8 +602,8 @@ function setupBodyParsing(app2) {
     express.json({
       verify: (req, _res, buf) => {
         req.rawBody = buf;
-      }
-    })
+      },
+    }),
   );
   app2.use(express.urlencoded({ extended: false }));
 }
@@ -548,7 +613,7 @@ function setupRequestLogging(app2) {
     const path2 = req.path;
     let capturedJsonResponse = void 0;
     const originalResJson = res.json;
-    res.json = function(bodyJson, ...args) {
+    res.json = function (bodyJson, ...args) {
       capturedJsonResponse = bodyJson;
       return originalResJson.apply(res, [bodyJson, ...args]);
     };
@@ -582,10 +647,12 @@ function serveExpoManifest(platform, res) {
     process.cwd(),
     "static-build",
     platform,
-    "manifest.json"
+    "manifest.json",
   );
   if (!fs.existsSync(manifestPath)) {
-    return res.status(404).json({ error: `Manifest not found for platform: ${platform}` });
+    return res
+      .status(404)
+      .json({ error: `Manifest not found for platform: ${platform}` });
   }
   res.setHeader("expo-protocol-version", "1");
   res.setHeader("expo-sfv-version", "0");
@@ -593,12 +660,7 @@ function serveExpoManifest(platform, res) {
   const manifest = fs.readFileSync(manifestPath, "utf-8");
   res.send(manifest);
 }
-function serveLandingPage({
-  req,
-  res,
-  landingPageTemplate,
-  appName
-}) {
+function serveLandingPage({ req, res, landingPageTemplate, appName }) {
   const forwardedProto = req.header("x-forwarded-proto");
   const protocol = forwardedProto || req.protocol || "https";
   const forwardedHost = req.header("x-forwarded-host");
@@ -607,7 +669,10 @@ function serveLandingPage({
   const expsUrl = `${host}`;
   log(`baseUrl`, baseUrl);
   log(`expsUrl`, expsUrl);
-  const html = landingPageTemplate.replace(/BASE_URL_PLACEHOLDER/g, baseUrl).replace(/EXPS_URL_PLACEHOLDER/g, expsUrl).replace(/APP_NAME_PLACEHOLDER/g, appName);
+  const html = landingPageTemplate
+    .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
+    .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl)
+    .replace(/APP_NAME_PLACEHOLDER/g, appName);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.status(200).send(html);
 }
@@ -616,7 +681,7 @@ function configureExpoAndLanding(app2) {
     process.cwd(),
     "server",
     "templates",
-    "landing-page.html"
+    "landing-page.html",
   );
   const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
   const appName = getAppName();
@@ -637,7 +702,7 @@ function configureExpoAndLanding(app2) {
         req,
         res,
         landingPageTemplate,
-        appName
+        appName,
       });
     }
     next();
@@ -667,10 +732,10 @@ function setupErrorHandler(app2) {
     {
       port,
       host: "0.0.0.0",
-      reusePort: true
+      reusePort: true,
     },
     () => {
       log(`express server serving on port ${port}`);
-    }
+    },
   );
 })();

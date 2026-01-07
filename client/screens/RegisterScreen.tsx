@@ -61,7 +61,10 @@ export default function RegisterScreen() {
     try {
       await register(username.trim(), password, name.trim());
     } catch (error) {
-      Alert.alert("Error", error instanceof Error ? error.message : "Registration failed");
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Registration failed",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +75,10 @@ export default function RegisterScreen() {
       <KeyboardAwareScrollViewCompat
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + Spacing["3xl"], paddingBottom: insets.bottom + Spacing.xl },
+          {
+            paddingTop: insets.top + Spacing["3xl"],
+            paddingBottom: insets.bottom + Spacing.xl,
+          },
         ]}
       >
         <View style={styles.header}>
@@ -87,9 +93,17 @@ export default function RegisterScreen() {
 
         <View style={styles.form}>
           <View style={styles.inputContainer}>
-            <Feather name="user" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Feather
+              name="user"
+              size={20}
+              color={theme.textSecondary}
+              style={styles.inputIcon}
+            />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="Full Name"
               placeholderTextColor={theme.textSecondary}
               value={name}
@@ -99,9 +113,17 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Feather name="at-sign" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Feather
+              name="at-sign"
+              size={20}
+              color={theme.textSecondary}
+              style={styles.inputIcon}
+            />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="Username"
               placeholderTextColor={theme.textSecondary}
               value={username}
@@ -112,9 +134,17 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Feather name="lock" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Feather
+              name="lock"
+              size={20}
+              color={theme.textSecondary}
+              style={styles.inputIcon}
+            />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="Password"
               placeholderTextColor={theme.textSecondary}
               value={password}
@@ -134,9 +164,17 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputContainer}>
-            <Feather name="check-circle" size={20} color={theme.textSecondary} style={styles.inputIcon} />
+            <Feather
+              name="check-circle"
+              size={20}
+              color={theme.textSecondary}
+              style={styles.inputIcon}
+            />
             <TextInput
-              style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+              style={[
+                styles.input,
+                { color: theme.text, borderColor: theme.border },
+              ]}
               placeholder="Confirm Password"
               placeholderTextColor={theme.textSecondary}
               value={confirmPassword}

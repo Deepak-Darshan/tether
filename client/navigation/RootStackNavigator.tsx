@@ -65,6 +65,15 @@ export default function RootStackNavigator() {
               component={ChatScreen}
               options={({ route }) => ({
                 headerTitle: (route.params as any)?.userName || "Chat",
+                headerTransparent: false,
+                headerBlurEffect: undefined,
+                headerStyle: {
+                  backgroundColor: theme.backgroundRoot,
+                },
+                headerTintColor: theme.text,
+                headerTitleStyle: {
+                  color: theme.text,
+                },
               })}
             />
           </>
