@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -33,27 +34,46 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const theme = Colors.dark;
 
   async function handleRegister() {
+    setErrorMessage(null);
+
     if (!name.trim() || !username.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+      const message = "Please fill in all fields";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      const message = "Passwords do not match";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      const message = "Password must be at least 6 characters";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
       return;
     }
 
     if (username.length < 3) {
-      Alert.alert("Error", "Username must be at least 3 characters");
+      const message = "Username must be at least 3 characters";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
       return;
     }
 
@@ -61,10 +81,12 @@ export default function RegisterScreen() {
     try {
       await register(username.trim(), password, name.trim());
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Registration failed",
-      );
+      const message =
+        error instanceof Error ? error.message : "Registration failed";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -194,6 +216,18 @@ export default function RegisterScreen() {
               "Create Account"
             )}
           </Button>
+
+          {errorMessage ? (
+            <ThemedText
+              style={{
+                color: theme.error,
+                marginTop: Spacing.sm,
+                textAlign: "center",
+              }}
+            >
+              {errorMessage}
+            </ThemedText>
+          ) : null}
 
           <Pressable
             onPress={() => navigation.goBack()}

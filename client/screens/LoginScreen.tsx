@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
@@ -31,12 +32,19 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const theme = Colors.dark;
 
   async function handleLogin() {
+    setErrorMessage(null);
+
     if (!username.trim() || !password.trim()) {
-      Alert.alert("Error", "Please fill in all fields");
+      const message = "Please fill in all fields";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
       return;
     }
 
@@ -44,10 +52,12 @@ export default function LoginScreen() {
     try {
       await login(username.trim(), password);
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Login failed",
-      );
+      const message =
+        error instanceof Error ? error.message : "Login failed";
+      setErrorMessage(message);
+      if (Platform.OS !== "web") {
+        Alert.alert("Error", message);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -137,6 +147,18 @@ export default function LoginScreen() {
               "Sign In"
             )}
           </Button>
+
+          {errorMessage ? (
+            <ThemedText
+              style={{
+                color: theme.error,
+                marginTop: Spacing.sm,
+                textAlign: "center",
+              }}
+            >
+              {errorMessage}
+            </ThemedText>
+          ) : null}
 
           <Pressable
             onPress={() => navigation.navigate("Register")}
